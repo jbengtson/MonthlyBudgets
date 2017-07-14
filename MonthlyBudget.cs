@@ -72,6 +72,7 @@ namespace severedsolo {
 
                 // tell the player what happened.
                 String message = "Budget Report";
+                message += "\n";
                 message += "\n  Current Funds : " + currentFunds.ToString("C");
                 if(excessCoversCosts) {
                     message += "\n  Excess Covered: " + excessCovered.ToString("C");
@@ -117,7 +118,6 @@ namespace severedsolo {
 
         void Update() {
             if(HighLogic.CurrentGame.Mode != Game.Modes.CAREER) { return; }
-            // what's this for?
             if(lastUpdate == 99999) { return; }
 
             double time = (Planetarium.GetUniversalTime());
@@ -140,10 +140,10 @@ namespace severedsolo {
                 KACWrapper.KACAPI.KACAlarmList alarms = KACWrapper.KAC.Alarms;
                 if(alarms.Count == 0) { return; }
                 for(int i = 0; i < alarms.Count; i++) {
-                    string s = alarms[i].Name;
-                    if(s == "Next Budget") { return; }
+                    if(alarms[i].Name == "Next Budget") { return; }
                 }
-                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Next Budget", lastUpdate + budgetInterval);
+                // add a five minute alarm window for the next budget so we can make adjustments as desired.
+                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Next Budget Period", lastUpdate + budgetInterval - 300);
             }
         }
 
@@ -241,7 +241,7 @@ namespace severedsolo {
             GUILayout.Label("Next Budget Due: Y " + year + " D " + day);
             GUILayout.Label("Estimated Budget: $" + estimatedBudget);
             GUILayout.Label("Current Costs: $" + costs);
-            double loanAmount = Math.Round((costs / 5) * loanPercentage, 0);
+            double loanAmount = Math.Round((estimatedBudget / 5) * loanPercentage, 0);
             int RepLoss = (int) Reputation.CurrentRep / 20;
             if(loanAmount > 0) {
                 if(GUILayout.Button("Apply for Emergency Funding (" + loanAmount + ")")) {

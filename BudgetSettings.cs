@@ -23,11 +23,11 @@ namespace severedsolo {
         public bool stopTimewarp = false;
         [GameParameters.CustomParameterUI("Excess Covers Costs?", toolTip = "If there is budget left over from the current period will it cover costs on the next?")]
         public bool excessCoversCosts = false;
-        [GameParameters.CustomFloatParameterUI("Period Length", minValue = 1, maxValue = 427, toolTip = "Length of the budgeting period in days.")]
+        [GameParameters.CustomFloatParameterUI("Period Length", minValue = 1, maxValue = 427, toolTip = "Length of the budgeting period in homeworld days.")]
         public float periodLength = 91.25f;
         [GameParameters.CustomFloatParameterUI("Astronaut Wages per Period", minValue = 1, maxValue = 20)]
         public float wages = 5;
-        [GameParameters.CustomFloatParameterUI("Vessel Maintenance Cost per Period", minValue = 1, maxValue = 1000, toolTip = "Costs per active vessel in th tracking station per period. Some vessel types not counted.")]
+        [GameParameters.CustomFloatParameterUI("Vessel Maintenance Cost per Period", minValue = 1, maxValue = 1000, toolTip = "Costs per active vessel in the tracking station per period. Some vessel types not counted.")]
         public float vesselCost = 50;
 
         public override void SetDifficultyPreset(GameParameters.Preset preset) {
