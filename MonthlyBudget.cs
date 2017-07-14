@@ -85,19 +85,46 @@ namespace severedsolo {
                 message += "\n  Funding:        " + funding.ToString("C");
                 message += "\n";
                 message += "\nThis Period's Budget: " + finalBudget.ToString("C");
-                AddMessage("Budget Report", message, MessageSystemButton.MessageButtonColor.BLUE, MessageSystemButton.ButtonIcons.MESSAGE);
 
                 // upkeep
                 lastUpdate = lastUpdate + budgetInterval;
                 if(loanPercentage < 1) {
                     loanPercentage = loanPercentage + 0.1f;
+                    message += "\n\nLoan Penalty reduced to " + loanPercentage.ToString("F1") + ".";
                 }
 
-                if(!KACWrapper.AssemblyExists && stopTimeWarp) {
+                // degrade the reputation if it's above 250.
+                float currentRep = Reputation.CurrentRep;
+                if(currentRep > 250) {
+                    // Since reputation is awarded on a curve this poses some problems on how to degrade effectively at higher levels.
+                    // Higher reputation may also imply longer-term missions which can make quarterly decay punishing.
+                    float decayRate = (1250 - currentRep) * 0.00002f; // simple linear progression. It won't fit the curve exactly but should alleviate some issues.
+                    float repLoss = -(Reputation.CurrentRep * decayRate);
+                    Reputation.Instance.AddReputation(repLoss, TransactionReasons.None);
+                    message += "\n\nReputation degrades by " + repLoss.ToString("F2") + ".";
+                }
+
+                AddMessage("Budget Report", message, MessageSystemButton.MessageButtonColor.BLUE, MessageSystemButton.ButtonIcons.MESSAGE);
+
+                // we're automatically stopping timewarp because we're now adding a five minute window to the KAC alarm.
+                if(stopTimeWarp) {
                     TimeWarp.SetRate(0, true);
                 }
+
+                CheckForAlarm();
             } catch {
                 Debug.Log("[MonthlyBudgets]: Problem calculating the budget");
+            }
+        }
+
+        private void CheckForAlarm() {
+            if(KACWrapper.AssemblyExists && stopTimeWarp) {
+                if(!KACWrapper.APIReady) { return; }
+                IEnumerable<KACWrapper.KACAPI.KACAlarm> alarm = KACWrapper.KAC.Alarms.Where(a => a.Name == "Next Budget Period" && a.AlarmTime > Planetarium.GetUniversalTime());
+                if(alarm.Count() < 1) {
+                    // add a five minute alarm window for the next budget so we can make adjustments as desired (KCT, part unlocks).
+                    KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Next Budget Period", lastUpdate + budgetInterval - 300);
+                }
             }
         }
 
@@ -118,7 +145,11 @@ namespace severedsolo {
 
         void Update() {
             if(HighLogic.CurrentGame.Mode != Game.Modes.CAREER) { return; }
-            if(lastUpdate == 99999) { return; }
+            if(lastUpdate == 99999) {
+                // ensure we have a KAC alarm for the first budget period.
+                CheckForAlarm();
+                return;
+            }
 
             double time = (Planetarium.GetUniversalTime());
 
@@ -133,17 +164,6 @@ namespace severedsolo {
 
             if(timeSinceLastUpdate >= budgetInterval) {
                 Budget(timeSinceLastUpdate);
-            }
-
-            if(KACWrapper.AssemblyExists && stopTimeWarp) {
-                if(!KACWrapper.APIReady) { return; }
-                KACWrapper.KACAPI.KACAlarmList alarms = KACWrapper.KAC.Alarms;
-                if(alarms.Count == 0) { return; }
-                for(int i = 0; i < alarms.Count; i++) {
-                    if(alarms[i].Name == "Next Budget") { return; }
-                }
-                // add a five minute alarm window for the next budget so we can make adjustments as desired.
-                KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Next Budget Period", lastUpdate + budgetInterval - 300);
             }
         }
 
@@ -242,12 +262,13 @@ namespace severedsolo {
             GUILayout.Label("Estimated Budget: $" + estimatedBudget);
             GUILayout.Label("Current Costs: $" + costs);
             double loanAmount = Math.Round((estimatedBudget / 5) * loanPercentage, 0);
-            int RepLoss = (int) Reputation.CurrentRep / 20;
             if(loanAmount > 0) {
                 if(GUILayout.Button("Apply for Emergency Funding (" + loanAmount + ")")) {
+                    float RepLoss = Reputation.CurrentRep / 20;
                     Reputation.Instance.AddReputation(-RepLoss, TransactionReasons.None);
                     Funding.Instance.AddFunds(loanAmount, TransactionReasons.None);
-                    loanPercentage = loanPercentage - 0.1f;
+                    // Going over budget should carry a substantial penalty on further budget requests for the next year.
+                    loanPercentage = loanPercentage - 0.4f;
                 }
             }
             GUI.DragWindow();
