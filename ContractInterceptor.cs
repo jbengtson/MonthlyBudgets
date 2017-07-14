@@ -2,47 +2,39 @@
 using Contracts;
 using System;
 
-namespace severedsolo
-{
+namespace severedsolo {
     [KSPAddon(KSPAddon.Startup.SpaceCentre, true)]
-    class ContractInterceptor : MonoBehaviour
-    {
+    class ContractInterceptor : MonoBehaviour {
         bool disableContracts = true;
-        public void Awake()
-        {
-            if (!HighLogic.CurrentGame.Parameters.CustomParams<BudgetSettings>().masterSwitch) Destroy(this);
+
+        public void Awake() {
+            if(!HighLogic.CurrentGame.Parameters.CustomParams<BudgetSettings>().masterSwitch) {
+                Destroy(this);
+            }
             DontDestroyOnLoad(this);
             GameEvents.Contract.onOffered.Add(onOffered);
             GameEvents.OnGameSettingsApplied.Add(onSettings);
             GameEvents.onGameStateLoad.Add(onLoaded);
         }
 
-        private void onLoaded(ConfigNode data)
-        {
+        private void onLoaded(ConfigNode data) {
             disableContracts = HighLogic.CurrentGame.Parameters.CustomParams<BudgetSettings>().ContractInterceptor;
         }
 
-        private void onSettings()
-        {
+        private void onSettings() {
             disableContracts = HighLogic.CurrentGame.Parameters.CustomParams<BudgetSettings>().ContractInterceptor;
-            if(disableContracts)Debug.Log("[MonthlyBudgets]: Starting Contract Interceptor");
-            if(!disableContracts)Debug.Log("[MonthlyBudgets]: Contract Interceptor has been disabled");
         }
 
-        public void OnDestroy()
-        {
+        public void OnDestroy() {
             GameEvents.Contract.onOffered.Remove(onOffered);
         }
 
-        private void onOffered(Contract contract)
-        {
-            if (HighLogic.CurrentGame.Mode != Game.Modes.CAREER || !disableContracts) return;
-            if (!(contract.FundsCompletion > 0)) return;
-            int rep = (int)((contract.FundsAdvance / 10000) + (contract.FundsCompletion / 10000));
-            contract.ReputationCompletion = contract.ReputationCompletion + rep;
+        // don't you dare ever award any funds for a contract, kill it with nuclear fucking fire.
+        // We're also not going to convert any funds to rep, you only get the stated rep.
+        private void onOffered(Contract contract) {
+            if(HighLogic.CurrentGame.Mode != Game.Modes.CAREER || !disableContracts) { return; }
             contract.FundsAdvance = 0;
             contract.FundsCompletion = 0;
-            Debug.Log("[MonthlyBudgets]: Intercepted " + contract.ContractID + "of type " +contract.Title+ ": Removed fund award. An extra " + rep + " reputation will be awarded instead");
         }
     }
 }

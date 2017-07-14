@@ -1,11 +1,8 @@
 ﻿using UnityEngine;
 
-namespace severedsolo
-{
-    class BudgetSettings : GameParameters.CustomParameterNode
-    {
-        public enum BudgetDifficulty
-        {
+namespace severedsolo {
+    class BudgetSettings : GameParameters.CustomParameterNode {
+        public enum BudgetDifficulty {
             EASY,
             MEDIUM,
             HARD,
@@ -13,72 +10,44 @@ namespace severedsolo
         public override string Title { get { return "Monthly Budget Options"; } }
         public override GameParameters.GameMode GameMode { get { return GameParameters.GameMode.CAREER; } }
         public override string Section { get { return "Monthly Budgets"; } }
-        public override string DisplaySection { get { return Section; } }
+        public string DisplaySection { get { return Section; } }
         public override int SectionOrder { get { return 1; } }
         public override bool HasPresets { get { return true; } }
         public bool autoPersistance = true;
         public bool newGameOnly = false;
+        // This is probably going to be the only one available later, we'll move to config files because sliders are shit.
         [GameParameters.CustomParameterUI("Mod enabled?")]
         public bool masterSwitch = true;
-        [GameParameters.CustomParameterUI("Enable Hard Mode?", toolTip = "Removes some reputation if you have leftover funds at the end of a budget cycle")]
-        public bool HardMode = false;
-        [GameParameters.CustomParameterUI("Enable Reputation Decay?", toolTip = "Repuation naturally decreases over time")]
-        public bool DecayEnabled = false;
-        [GameParameters.CustomParameterUI("Disable Contract Funding?", toolTip = "Converts contract funding rewards to reputation")]
         public bool ContractInterceptor = true;
-        [GameParameters.CustomParameterUI("Taxpayers always try to cover costs", toolTip = "When enabled, costs will always try to be deducted from the budget, even if funds are higher than the awarded budget")]
-        public bool coverCosts = false;
         [GameParameters.CustomParameterUI("Stop Timewarp on budget?", toolTip = "Will also add KAC alarm if applicable")]
         public bool stopTimewarp = false;
-        [GameParameters.CustomIntParameterUI("Decay percentage", minValue = 1, maxValue = 100, toolTip = "How much to decay the repuation by each month (if Reputation Decay is switched on)")]
-        public int RepDecay = 10;
-        [GameParameters.CustomIntParameterUI("Multiplier", minValue = 1, maxValue = 9999)]
-        public int  Multiplier = 2227;
-        [GameParameters.CustomFloatParameterUI("Budget Interval", minValue = 1, maxValue = 427)]
-        public float friendlyInterval = 30;
-        [GameParameters.CustomIntParameterUI("Unassigned Kerbal Wages", minValue = 1000, maxValue = 100000)]
-        public int availableWages = 1000;
-        [GameParameters.CustomIntParameterUI("Assigned Kerbal Wages", minValue = 1000, maxValue = 100000)]
-        public int assignedWages = 2000;
-        [GameParameters.CustomIntParameterUI("Vessel Maintenance cost", minValue = 1000, maxValue = 100000)]
-        public int vesselCost = 10000;
-        
+        [GameParameters.CustomParameterUI("Excess Covers Costs?", toolTip = "If there is budget left over from the current period will it cover costs on the next?")]
+        public bool excessCoversCosts = false;
+        [GameParameters.CustomFloatParameterUI("Period Length", minValue = 1, maxValue = 427, toolTip = "Length of the budgeting period in days.")]
+        public float periodLength = 91.25f;
+        [GameParameters.CustomFloatParameterUI("Astronaut Wages per Period", minValue = 1, maxValue = 20)]
+        public float wages = 5;
+        [GameParameters.CustomFloatParameterUI("Vessel Maintenance Cost per Period", minValue = 1, maxValue = 1000, toolTip = "Costs per active vessel in th tracking station per period. Some vessel types not counted.")]
+        public float vesselCost = 50;
 
-
-        public override void SetDifficultyPreset(GameParameters.Preset preset)
-        {
+        public override void SetDifficultyPreset(GameParameters.Preset preset) {
             Debug.Log("[MonthlyBudgets]: Setting difficulty preset");
-            switch (preset)
-            {
+            switch(preset) {
                 case GameParameters.Preset.Easy:
-                    Multiplier = 5000;
-                    availableWages = 500;
-                    assignedWages = 1000;
-                    vesselCost = 5000;
+                    wages = 4;
+                    vesselCost = 40;
                     break;
-
                 case GameParameters.Preset.Normal:
-                    Multiplier = 2227;
-                    availableWages = 1000;
-                    assignedWages = 2000;
-                    vesselCost = 10000;
+                    wages = 5;
+                    vesselCost = 50;
                     break;
-
                 case GameParameters.Preset.Moderate:
-                    Multiplier = 1000;
-                    availableWages = 3500;
-                    assignedWages = 6000;
-                    vesselCost = 12000;
-                    DecayEnabled = true;
+                    wages = 7.5f;
+                    vesselCost = 75;
                     break;
-
                 case GameParameters.Preset.Hard:
-                    Multiplier = 500;
-                    availableWages = 5000;
-                    assignedWages = 10000;
-                    vesselCost = 20000;
-                    DecayEnabled = true;
-                    HardMode = true;
+                    wages = 10;
+                    vesselCost = 100;
                     break;
             }
         }
