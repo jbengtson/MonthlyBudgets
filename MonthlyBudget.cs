@@ -94,14 +94,12 @@ namespace severedsolo {
                 }
 
                 // degrade the reputation if it's above 250.
-                float currentRep = Reputation.CurrentRep;
-                if(currentRep > 250) {
+                if(Reputation.CurrentRep > 250) {
                     // Since reputation is awarded on a curve this poses some problems on how to degrade effectively at higher levels.
                     // Higher reputation may also imply longer-term missions which can make quarterly decay punishing.
-                    float decayRate = (1250 - currentRep) * 0.00002f; // simple linear progression. It won't fit the curve exactly but should alleviate some issues.
-                    float repLoss = -(Reputation.CurrentRep * decayRate);
-                    Reputation.Instance.AddReputation(repLoss, TransactionReasons.None);
-                    message += "\n\nReputation degrades by " + repLoss.ToString("F2") + ".";
+                    // After some thought and trying to fit values, a decrease of 5 rep is what I decided on.
+                    Reputation.Instance.AddReputation(-5, TransactionReasons.None);
+                    message += "\n\nReputation degrades to " + Reputation.CurrentRep.ToString("F2") + ".";
                 }
 
                 AddMessage("Budget Report", message, MessageSystemButton.MessageButtonColor.BLUE, MessageSystemButton.ButtonIcons.MESSAGE);
