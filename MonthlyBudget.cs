@@ -37,13 +37,13 @@ namespace severedsolo {
             // it's ... complicated, but based on fitting to desired values.
             float baseFunding = (float) Math.Pow(rep + 250.0, 2.1);
             if(rep < 0) {
-                return baseFunding / 40.0f;
+                return baseFunding / 8.0f;
             }
             if(rep > 0) {
-                return baseFunding / 10.0f;
+                return baseFunding / 2.0f;
             }
             // I can't see this happening with floats but whatever
-            return baseFunding / 20.0f;
+            return baseFunding / 4.0f;
         }
 
         // this apparently does the budget
@@ -67,7 +67,7 @@ namespace severedsolo {
 
                 // apply all these changes.
                 double finalBudget = funding - (totalCosts - excessCovered);
-                Funding.Instance.AddFunds(-currentFunds, TransactionReasons.None);
+                Funding.Instance.AddFunds(-currentFunds, TransactionReasons.None); // zero the budget, always.
                 Funding.Instance.AddFunds(finalBudget, TransactionReasons.None);
 
                 // tell the player what happened.
@@ -90,15 +90,14 @@ namespace severedsolo {
                 lastUpdate = lastUpdate + budgetInterval;
                 if(loanPercentage < 1) {
                     loanPercentage = loanPercentage + 0.1f;
-                    message += "\n\nLoan Penalty reduced to " + loanPercentage.ToString("F1") + ".";
+                    message += "\n\nOverflow Penalty reduced to " + loanPercentage.ToString("F1") + ".";
                 }
 
                 // degrade the reputation if it's above 250.
                 if(Reputation.CurrentRep > 250) {
                     // Since reputation is awarded on a curve this poses some problems on how to degrade effectively at higher levels.
                     // Higher reputation may also imply longer-term missions which can make quarterly decay punishing.
-                    // After some thought and trying to fit values, a decrease of 5 rep is what I decided on.
-                    Reputation.Instance.AddReputation(-5, TransactionReasons.None);
+                    Reputation.Instance.AddReputation(-(Reputation.CurrentRep * 0.015f), TransactionReasons.None);
                     message += "\n\nReputation degrades to " + Reputation.CurrentRep.ToString("F2") + ".";
                 }
 
@@ -118,10 +117,14 @@ namespace severedsolo {
         private void CheckForAlarm() {
             if(KACWrapper.AssemblyExists && stopTimeWarp) {
                 if(!KACWrapper.APIReady) { return; }
-                IEnumerable<KACWrapper.KACAPI.KACAlarm> alarm = KACWrapper.KAC.Alarms.Where(a => a.Name == "Next Budget Period" && a.AlarmTime > Planetarium.GetUniversalTime());
-                if(alarm.Count() < 1) {
+                IEnumerable<KACWrapper.KACAPI.KACAlarm> alarms = KACWrapper.KAC.Alarms.Where(a => a.Name == "Next Budget Period" && a.AlarmTime > Planetarium.GetUniversalTime());
+                if(alarms.Count() < 1) {
                     // add a five minute alarm window for the next budget so we can make adjustments as desired (KCT, part unlocks).
-                    KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Next Budget Period", lastUpdate + budgetInterval - 300);
+                    String id = KACWrapper.KAC.CreateAlarm(KACWrapper.KACAPI.AlarmTypeEnum.Raw, "Next Budget Period", lastUpdate + budgetInterval);
+                    KACWrapper.KACAPI.KACAlarm alarm = KACWrapper.KAC.Alarms.Find(a => a.ID == id);
+                    if(alarm != null) {
+                        alarm.AlarmMargin = 300;
+                    }
                 }
             }
         }
@@ -260,15 +263,16 @@ namespace severedsolo {
             GUILayout.Label("Estimated Budget: $" + estimatedBudget);
             GUILayout.Label("Current Costs: $" + costs);
             double loanAmount = Math.Round((estimatedBudget / 5) * loanPercentage, 0);
-            if(loanAmount > 0) {
-                if(GUILayout.Button("Apply for Emergency Funding (" + loanAmount + ")")) {
+            if(loanAmount > 1) {
+                if(GUILayout.Button("Apply for Overflow Funding (" + loanAmount + ")")) {
                     float RepLoss = Reputation.CurrentRep / 20;
                     Reputation.Instance.AddReputation(-RepLoss, TransactionReasons.None);
                     Funding.Instance.AddFunds(loanAmount, TransactionReasons.None);
                     // Going over budget should carry a substantial penalty on further budget requests for the next year.
-                    loanPercentage = loanPercentage - 0.4f;
+                    loanPercentage = loanPercentage - 0.5f;
                 }
             }
+            GUILayout.Label("(incurs a " + (Reputation.CurrentRep / 20).ToString("F0") + " reputation penalty)");
             GUI.DragWindow();
         }
 
