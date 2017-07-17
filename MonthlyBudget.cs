@@ -37,6 +37,7 @@ namespace severedsolo {
             // it's ... complicated, but based on fitting to desired values.
             float baseFunding = (float) Math.Pow(rep + 250.0, 2.1);
             if(rep < 0) {
+                // it's a slippery slope but it should provide some failure conditions.
                 return baseFunding / 8.0f;
             }
             if(rep > 0) {
@@ -50,6 +51,7 @@ namespace severedsolo {
         private void Budget(double timeSinceLastUpdate) {
             try {
                 float crewCosts = CrewWages();
+                float facilityCosts = FacilityCosts();
                 float vesselCosts = VesselCosts();
                 float totalCosts = crewCosts + vesselCosts;
                 float funding = NextFunding();
@@ -79,6 +81,7 @@ namespace severedsolo {
                 }
                 message += "\n";
                 message += "\n  Crew Costs:     " + crewCosts.ToString("C");
+                message += "\n  Facility Costs: " + facilityCosts.ToString("C");
                 message += "\n  Vessel Upkeep:  " + vesselCosts.ToString("C");
                 message += "\n  Total Costs:    " + totalCosts.ToString("C");
                 message += "\n";
@@ -114,9 +117,9 @@ namespace severedsolo {
             }
         }
 
-        private void CheckForAlarm() {
+        private bool CheckForAlarm() {
             if(KACWrapper.AssemblyExists && stopTimeWarp) {
-                if(!KACWrapper.APIReady) { return; }
+                if(!KACWrapper.APIReady) { return false; }
                 IEnumerable<KACWrapper.KACAPI.KACAlarm> alarms = KACWrapper.KAC.Alarms.Where(a => a.Name == "Next Budget Period" && a.AlarmTime > Planetarium.GetUniversalTime());
                 if(alarms.Count() < 1) {
                     // add a five minute alarm window for the next budget so we can make adjustments as desired (KCT, part unlocks).
@@ -127,6 +130,7 @@ namespace severedsolo {
                     }
                 }
             }
+            return true; // everything falls through to true, we're really only checking for the API to be ready.
         }
 
         void Awake() {
@@ -148,8 +152,11 @@ namespace severedsolo {
             if(HighLogic.CurrentGame.Mode != Game.Modes.CAREER) { return; }
             if(lastUpdate == 99999) {
                 // ensure we have a KAC alarm for the first budget period.
-                CheckForAlarm();
-                return;
+                if(CheckForAlarm()) {
+                    lastUpdate = 0;
+                } else {
+                    return;
+                }
             }
 
             double time = (Planetarium.GetUniversalTime());
@@ -185,6 +192,11 @@ namespace severedsolo {
             IEnumerable<ProtoCrewMember> crew = HighLogic.CurrentGame.CrewRoster.Crew.Where(p => p.type != ProtoCrewMember.KerbalType.Tourist);
             // we're not differentiating between assigned and unassigned, nor do we care about experience.
             return wages * crew.Count();
+        }
+
+        private float FacilityCosts() {
+            // facility upkeep should represent personnel wages and things like repairs.
+            return 0.0f;
         }
 
         private float VesselCosts() {
@@ -262,6 +274,7 @@ namespace severedsolo {
             GUILayout.Label("Next Budget Due: Y " + year + " D " + day);
             GUILayout.Label("Estimated Budget: $" + estimatedBudget);
             GUILayout.Label("Current Costs: $" + costs);
+            GUILayout.Label("Budget based on " + Reputation.CurrentRep.ToString("F2") + " rep.");
             double loanAmount = Math.Round((estimatedBudget / 5) * loanPercentage, 0);
             if(loanAmount > 1) {
                 if(GUILayout.Button("Apply for Overflow Funding (" + loanAmount + ")")) {
