@@ -48,7 +48,7 @@ namespace severedsolo {
         }
 
         // this apparently does the budget
-        private void Budget(double timeSinceLastUpdate) {
+        private void DoBudget(double timeSinceLastUpdate) {
             try {
                 float crewCosts = CrewWages();
                 float facilityCosts = FacilityCosts();
@@ -171,7 +171,7 @@ namespace severedsolo {
             double timeSinceLastUpdate = time - lastUpdate;
 
             if(timeSinceLastUpdate >= budgetInterval) {
-                Budget(timeSinceLastUpdate);
+                DoBudget(timeSinceLastUpdate);
             }
         }
 
@@ -196,7 +196,27 @@ namespace severedsolo {
 
         private float FacilityCosts() {
             // facility upkeep should represent personnel wages and things like repairs.
-            return 0.0f;
+            // Each of these comes as a fraction of the maximum level so all we really have to do is figure the maximum cost for each.
+            float total = 0.0f;
+
+            // what if this useless example of shit gameplay did something for us? see below?
+            float admin = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.Administration);
+            float admAdjust = 10 - admin; // from less than 100% to 90% costs. Work smarter, not harder.
+            admin = admin * 1.0f; // figure the facility cost now.
+
+            // you're cool, you're cool, you're cool...
+            float astro = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.AstronautComplex);
+            float launch = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.LaunchPad);
+            float mission = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.MissionControl);
+            float randd = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.ResearchAndDevelopment);
+            float runway = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.Runway);
+            float sph = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.SpaceplaneHangar);
+            float track = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.TrackingStation);
+            float vab = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.VehicleAssemblyBuilding);
+
+            // hey look, upgrading that fuckery did something for us that makes sense.
+            total = (admin + astro + launch + mission + randd + runway + sph + track + vab) * admAdjust;
+            return 0.0f; // gonna take some time to figure this one out.
         }
 
         private float VesselCosts() {
